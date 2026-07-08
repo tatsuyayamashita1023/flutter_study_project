@@ -64,7 +64,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _incrementCounter() {
     if (_counter >= 100) {
-      showDialog(
+      showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('上限に達しました'),
