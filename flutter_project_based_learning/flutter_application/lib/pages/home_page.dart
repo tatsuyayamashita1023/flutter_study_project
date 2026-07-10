@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application/pages/counter_page.dart';
+import 'package:flutter_application/pages/stopwatch_page.dart';
 import 'package:flutter_application/pages/todo_list_page.dart';
 
 class HomePage extends StatelessWidget {
@@ -31,6 +32,17 @@ class HomePage extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const TodoListPage()),
+              );
+            },
+          ),
+          const Divider(),
+          ListTile(
+            title: const Text('課題3：ストップウォッチ'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const StopwatchPage()),
               );
             },
           ),
