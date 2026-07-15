@@ -1,56 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application/models/news_article.dart';
+import 'package:flutter_application/providers/news_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class NewsDetailPage extends StatefulWidget {
-  const NewsDetailPage({
-    super.key,
-    required this.article,
-    required this.isFavorite,
-    required this.onFavoriteToggle,
-  });
+class NewsDetailPage extends ConsumerWidget {
+  const NewsDetailPage({super.key, required this.article});
 
   final NewsArticle article;
-  final bool isFavorite;
-  final VoidCallback onFavoriteToggle;
-
-  @override
-  State<NewsDetailPage> createState() => _NewsDetailPageState();
-}
-
-class _NewsDetailPageState extends State<NewsDetailPage> {
-  late bool _isFavorite;
-
-  @override
-  void initState() {
-    super.initState();
-    _isFavorite = widget.isFavorite;
-  }
-
-  void _toggleFavorite() {
-    setState(() {
-      _isFavorite = !_isFavorite;
-    });
-    widget.onFavoriteToggle();
-  }
 
   String _formatDate(String publishedAt) {
     if (publishedAt.length < 10) return publishedAt;
     return publishedAt.substring(0, 10);
   }
 
+  Future<void> _launchUrl(BuildContext context) async {
+    final uri = Uri.parse(article.url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('URLを開けませんでした')),
+        );
+      }
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
-    final article = widget.article;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bookmarksAsync = ref.watch(bookmarksProvider);
+    final bookmarks = bookmarksAsync.valueOrNull ?? [];
+    final isBookmarked = ref
+        .read(bookmarksProvider.notifier)
+        .isBookmarked(bookmarks, article.url);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('記事詳細'),
         actions: [
           IconButton(
             icon: Icon(
-              _isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: Colors.red,
+              isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+              color: Colors.deepPurple,
             ),
-            onPressed: _toggleFavorite,
+            onPressed: () =>
+                ref.read(bookmarksProvider.notifier).toggle(article),
           ),
         ],
       ),
@@ -84,17 +77,13 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                       Text(
                         article.source.name,
                         style: const TextStyle(
-                          color: Colors.blue,
-                          fontSize: 13,
-                        ),
+                            color: Colors.blue, fontSize: 13),
                       ),
                       const SizedBox(width: 12),
                       Text(
                         _formatDate(article.publishedAt),
                         style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 13,
-                        ),
+                            color: Colors.grey, fontSize: 13),
                       ),
                     ],
                   ),
@@ -102,10 +91,7 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                     const SizedBox(height: 4),
                     Text(
                       '著者：${article.author}',
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 13,
-                      ),
+                      style: const TextStyle(color: Colors.grey, fontSize: 13),
                     ),
                   ],
                   const Divider(height: 24),
@@ -116,11 +102,21 @@ class _NewsDetailPageState extends State<NewsDetailPage> {
                     ),
                     const SizedBox(height: 16),
                   ],
-                  if (article.content != null)
+                  if (article.content != null) ...[
                     Text(
                       article.content!,
                       style: const TextStyle(fontSize: 15),
                     ),
+                    const SizedBox(height: 24),
+                  ],
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.open_in_browser),
+                      label: const Text('記事全文を読む'),
+                      onPressed: () => _launchUrl(context),
+                    ),
+                  ),
                 ],
               ),
             ),

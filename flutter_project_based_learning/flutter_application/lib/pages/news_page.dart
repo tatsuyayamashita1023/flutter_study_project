@@ -1,254 +1,241 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application/models/news_article.dart';
 import 'package:flutter_application/pages/news_detail_page.dart';
-import 'package:flutter_application/services/news_api_service.dart';
-import 'package:flutter_application/services/news_favorites_service.dart';
+import 'package:flutter_application/providers/news_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class NewsPage extends StatefulWidget {
+const List<Map<String, String>> _categories = [
+  {'label': 'General', 'value': 'general'},
+  {'label': 'Business', 'value': 'business'},
+  {'label': 'Entertainment', 'value': 'entertainment'},
+  {'label': 'Health', 'value': 'health'},
+  {'label': 'Science', 'value': 'science'},
+  {'label': 'Sports', 'value': 'sports'},
+  {'label': 'Technology', 'value': 'technology'},
+];
+
+class NewsPage extends ConsumerStatefulWidget {
   const NewsPage({super.key});
 
   @override
-  State<NewsPage> createState() => _NewsPageState();
+  ConsumerState<NewsPage> createState() => _NewsPageState();
 }
 
-class _NewsPageState extends State<NewsPage>
+class _NewsPageState extends ConsumerState<NewsPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
-  final NewsApiService _apiService = NewsApiService();
-  final NewsFavoritesService _favoritesService = NewsFavoritesService();
-
-  List<NewsArticle> _articles = [];
-  List<NewsArticle> _favorites = [];
-  bool _isLoading = false;
-  bool _isLoadingMore = false;
-  String? _errorMessage;
-  int _currentPage = 1;
-  bool _hasMore = true;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _loadInitialData();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadInitialData() async {
-    final favorites = await _favoritesService.loadFavorites();
-    if (mounted) {
-      setState(() {
-        _favorites = favorites;
-      });
-    }
-    await _fetchNews();
+  void _onSearchChanged(String value) {
+    ref.read(searchQueryProvider.notifier).update(value);
+    setState(() {});
   }
 
-  Future<void> _fetchNews() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-      _articles = [];
-      _currentPage = 1;
-      _hasMore = true;
-    });
-    try {
-      final articles = await _apiService.fetchTopHeadlines(page: 1);
-      setState(() {
-        _articles = articles;
-        _hasMore = articles.length >= 20;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-        _isLoading = false;
-      });
-    }
+  void _clearSearch() {
+    _searchController.clear();
+    ref.read(searchQueryProvider.notifier).update('');
+    setState(() {});
   }
-
-  Future<void> _loadMore() async {
-    if (_isLoadingMore || !_hasMore) return;
-    setState(() {
-      _isLoadingMore = true;
-    });
-    try {
-      final articles = await _apiService.fetchTopHeadlines(
-        page: _currentPage + 1,
-      );
-      setState(() {
-        _articles = [..._articles, ...articles];
-        _currentPage += 1;
-        _hasMore = articles.length >= 20;
-        _isLoadingMore = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-        _isLoadingMore = false;
-      });
-    }
-  }
-
-  Future<void> _toggleFavorite(NewsArticle article) async {
-    final isFav = _favorites.any((f) => f.url == article.url);
-    final List<NewsArticle> updated;
-    if (isFav) {
-      updated = _favorites.where((f) => f.url != article.url).toList();
-    } else {
-      updated = [..._favorites, article];
-    }
-    setState(() {
-      _favorites = updated;
-    });
-    await _favoritesService.save(updated);
-  }
-
-  bool _isFavorite(String url) => _favorites.any((f) => f.url == url);
 
   String _formatDate(String publishedAt) {
     if (publishedAt.length < 10) return publishedAt;
     return publishedAt.substring(0, 10);
   }
 
-  Future<void> _navigateToDetail(NewsArticle article) async {
-    await Navigator.push<void>(
-      context,
-      MaterialPageRoute<void>(
-        builder: (_) => NewsDetailPage(
-          article: article,
-          isFavorite: _isFavorite(article.url),
-          onFavoriteToggle: () => _toggleFavorite(article),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildArticleCard(NewsArticle article) {
-    final isFav = _isFavorite(article.url);
+  Widget _buildArticleCard(NewsArticle article, List<NewsArticle> bookmarks) {
+    final isBookmarked = ref
+        .read(bookmarksProvider.notifier)
+        .isBookmarked(bookmarks, article.url);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => _navigateToDetail(article),
+        onTap: () => Navigator.push<void>(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => NewsDetailPage(article: article),
+          ),
+        ),
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (article.urlToImage != null)
-            Image.network(
-              article.urlToImage!,
-              height: 180,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, _) => const SizedBox.shrink(),
-            ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
-            child: Text(
-              article.title,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (article.urlToImage != null)
+              Image.network(
+                article.urlToImage!,
+                height: 180,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, _) => const SizedBox.shrink(),
               ),
-            ),
-          ),
-          if (article.description != null)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
               child: Text(
-                article.description!,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.grey, fontSize: 13),
+                article.title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 6, 4, 4),
-            child: Row(
-              children: [
-                Text(
-                  article.source.name,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.blue,
+            if (article.description != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  article.description!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 6, 4, 4),
+              child: Row(
+                children: [
+                  Text(
+                    article.source.name,
+                    style: const TextStyle(fontSize: 12, color: Colors.blue),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _formatDate(article.publishedAt),
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: Icon(
-                    isFav ? Icons.favorite : Icons.favorite_border,
-                    color: Colors.red,
+                  const SizedBox(width: 8),
+                  Text(
+                    _formatDate(article.publishedAt),
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
-                  onPressed: () => _toggleFavorite(article),
-                ),
-              ],
+                  const Spacer(),
+                  IconButton(
+                    icon: Icon(
+                      isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                      color: Colors.deepPurple,
+                    ),
+                    onPressed: () =>
+                        ref.read(bookmarksProvider.notifier).toggle(article),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildNewsList() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            _errorMessage!,
-            style: const TextStyle(color: Colors.red),
-            textAlign: TextAlign.center,
+    final searchQuery = ref.watch(searchQueryProvider);
+    final bookmarksAsync = ref.watch(bookmarksProvider);
+    final bookmarks = bookmarksAsync.valueOrNull ?? [];
+
+    if (searchQuery.isNotEmpty) {
+      final searchAsync = ref.watch(searchResultsProvider);
+      return searchAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              e.toString(),
+              style: const TextStyle(color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
+        data: (articles) {
+          if (articles.isEmpty) {
+            return const Center(child: Text('該当する記事が見つかりませんでした'));
+          }
+          return ListView.builder(
+            itemCount: articles.length,
+            itemBuilder: (context, index) =>
+                _buildArticleCard(articles[index], bookmarks),
+          );
+        },
       );
     }
-    if (_articles.isEmpty) {
-      return const Center(child: Text('記事がありません'));
-    }
-    return RefreshIndicator(
-      onRefresh: _fetchNews,
-      child: ListView.builder(
-        itemCount: _articles.length + (_hasMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == _articles.length) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Center(
-                child: _isLoadingMore
-                    ? const CircularProgressIndicator()
-                    : ElevatedButton(
-                        onPressed: _loadMore,
-                        child: const Text('もっと読み込む'),
-                      ),
+
+    final selectedCategory = ref.watch(selectedCategoryProvider);
+    final newsAsync = ref.watch(newsArticlesProvider);
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 44,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            itemCount: _categories.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final cat = _categories[index];
+              final isSelected = cat['value'] == selectedCategory;
+              return ChoiceChip(
+                label: Text(cat['label']!),
+                selected: isSelected,
+                onSelected: (_) => ref
+                    .read(selectedCategoryProvider.notifier)
+                    .select(cat['value']!),
+              );
+            },
+          ),
+        ),
+        Expanded(
+          child: newsAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  e.toString(),
+                  style: const TextStyle(color: Colors.red),
+                  textAlign: TextAlign.center,
+                ),
               ),
-            );
-          }
-          return _buildArticleCard(_articles[index]);
-        },
-      ),
+            ),
+            data: (articles) {
+              if (articles.isEmpty) {
+                return const Center(child: Text('記事がありません'));
+              }
+              return RefreshIndicator(
+                onRefresh: () async =>
+                    ref.refresh(newsArticlesProvider.future),
+                child: ListView.builder(
+                  itemCount: articles.length,
+                  itemBuilder: (context, index) =>
+                      _buildArticleCard(articles[index], bookmarks),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildFavoritesList() {
-    if (_favorites.isEmpty) {
-      return const Center(child: Text('お気に入りはまだありません'));
-    }
-    return ListView.builder(
-      itemCount: _favorites.length,
-      itemBuilder: (context, index) => _buildArticleCard(_favorites[index]),
+  Widget _buildBookmarksList() {
+    final bookmarksAsync = ref.watch(bookmarksProvider);
+    return bookmarksAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text(e.toString())),
+      data: (bookmarks) {
+        if (bookmarks.isEmpty) {
+          return const Center(child: Text('ブックマークはまだありません'));
+        }
+        return ListView.builder(
+          itemCount: bookmarks.length,
+          itemBuilder: (context, index) =>
+              _buildArticleCard(bookmarks[index], bookmarks),
+        );
+      },
     );
   }
 
@@ -261,15 +248,40 @@ class _NewsPageState extends State<NewsPage>
           controller: _tabController,
           tabs: const [
             Tab(text: 'ニュース一覧'),
-            Tab(text: 'お気に入り'),
+            Tab(text: 'ブックマーク'),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _buildNewsList(),
-          _buildFavoritesList(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'キーワードで検索',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: _clearSearch,
+                      )
+                    : null,
+                border: const OutlineInputBorder(),
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              ),
+              onChanged: _onSearchChanged,
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildNewsList(),
+                _buildBookmarksList(),
+              ],
+            ),
+          ),
         ],
       ),
     );

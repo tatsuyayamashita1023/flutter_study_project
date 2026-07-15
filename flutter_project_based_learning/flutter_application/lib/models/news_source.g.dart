@@ -6,8 +6,14 @@ part of 'news_source.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-NewsSource _$NewsSourceFromJson(Map<String, dynamic> json) =>
-    NewsSource(id: json['id'] as String?, name: json['name'] as String);
+_$NewsSourceImpl _$$NewsSourceImplFromJson(Map<String, dynamic> json) =>
+    _$NewsSourceImpl(
+      id: json['id'] as String?,
+      name: json['name'] as String,
+    );
 
-Map<String, dynamic> _$NewsSourceToJson(NewsSource instance) =>
-    <String, dynamic>{'id': instance.id, 'name': instance.name};
+Map<String, dynamic> _$$NewsSourceImplToJson(_$NewsSourceImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+    };

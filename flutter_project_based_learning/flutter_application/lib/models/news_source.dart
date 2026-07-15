@@ -1,31 +1,15 @@
-import 'package:flutter/foundation.dart';
-import 'package:json_annotation/json_annotation.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
+part 'news_source.freezed.dart';
 part 'news_source.g.dart';
 
-@immutable
-@JsonSerializable()
-class NewsSource {
-  const NewsSource({
-    this.id,
-    required this.name,
-  });
-
-  final String? id;
-  final String name;
+@freezed
+class NewsSource with _$NewsSource {
+  const factory NewsSource({
+    String? id,
+    required String name,
+  }) = _NewsSource;
 
   factory NewsSource.fromJson(Map<String, dynamic> json) =>
       _$NewsSourceFromJson(json);
-
-  Map<String, dynamic> toJson() => _$NewsSourceToJson(this);
-
-  NewsSource copyWith({
-    String? id,
-    String? name,
-  }) {
-    return NewsSource(
-      id: id ?? this.id,
-      name: name ?? this.name,
-    );
-  }
 }
