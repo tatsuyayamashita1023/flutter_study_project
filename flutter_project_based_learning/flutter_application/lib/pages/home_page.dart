@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application/pages/counter_page.dart';
 import 'package:flutter_application/pages/github_repos_page.dart';
+import 'package:flutter_application/pages/news_page.dart';
 import 'package:flutter_application/pages/stopwatch_page.dart';
 import 'package:flutter_application/pages/todo_list_page.dart';
 
@@ -55,6 +56,17 @@ class HomePage extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute<void>(builder: (_) => const GithubReposPage()),
+              );
+            },
+          ),
+          const Divider(),
+          ListTile(
+            title: const Text('課題6：ニュース一覧'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute<void>(builder: (_) => const NewsPage()),
               );
             },
           ),
