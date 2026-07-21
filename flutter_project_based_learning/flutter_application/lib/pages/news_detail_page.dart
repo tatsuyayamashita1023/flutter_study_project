@@ -51,9 +51,9 @@ class NewsDetailPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (article.urlToImage != null)
+            if (article.urlToImage case final urlToImage?)
               Image.network(
-                article.urlToImage!,
+                urlToImage,
                 width: double.infinity,
                 height: 220,
                 fit: BoxFit.cover,
@@ -95,16 +95,16 @@ class NewsDetailPage extends ConsumerWidget {
                     ),
                   ],
                   const Divider(height: 24),
-                  if (article.description != null) ...[
+                  if (article.description case final description?) ...[
                     Text(
-                      article.description!,
+                      description,
                       style: const TextStyle(fontSize: 15),
                     ),
                     const SizedBox(height: 16),
                   ],
-                  if (article.content != null) ...[
+                  if (article.content case final content?) ...[
                     Text(
-                      article.content!,
+                      content,
                       style: const TextStyle(fontSize: 15),
                     ),
                     const SizedBox(height: 24),

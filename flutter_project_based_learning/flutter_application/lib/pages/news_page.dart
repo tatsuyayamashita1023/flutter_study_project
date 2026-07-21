@@ -4,14 +4,14 @@ import 'package:flutter_application/pages/news_detail_page.dart';
 import 'package:flutter_application/providers/news_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-const List<Map<String, String>> _categories = [
-  {'label': 'General', 'value': 'general'},
-  {'label': 'Business', 'value': 'business'},
-  {'label': 'Entertainment', 'value': 'entertainment'},
-  {'label': 'Health', 'value': 'health'},
-  {'label': 'Science', 'value': 'science'},
-  {'label': 'Sports', 'value': 'sports'},
-  {'label': 'Technology', 'value': 'technology'},
+const List<({String label, String value})> _categories = [
+  (label: 'General', value: 'general'),
+  (label: 'Business', value: 'business'),
+  (label: 'Entertainment', value: 'entertainment'),
+  (label: 'Health', value: 'health'),
+  (label: 'Science', value: 'science'),
+  (label: 'Sports', value: 'sports'),
+  (label: 'Technology', value: 'technology'),
 ];
 
 class NewsPage extends ConsumerStatefulWidget {
@@ -177,13 +177,13 @@ class _NewsPageState extends ConsumerState<NewsPage>
             separatorBuilder: (context, index) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
               final cat = _categories[index];
-              final isSelected = cat['value'] == selectedCategory;
+              final isSelected = cat.value == selectedCategory;
               return ChoiceChip(
-                label: Text(cat['label']!),
+                label: Text(cat.label),
                 selected: isSelected,
                 onSelected: (_) => ref
                     .read(selectedCategoryProvider.notifier)
-                    .select(cat['value']!),
+                    .select(cat.value),
               );
             },
           ),
