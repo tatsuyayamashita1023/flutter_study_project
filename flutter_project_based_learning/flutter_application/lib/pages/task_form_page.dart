@@ -55,9 +55,10 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
     final now = DateTime.now();
     final title = _titleController.text.trim();
     final description = _descriptionController.text.trim();
+    final existingTask = widget.task;
 
-    final task = widget.task != null
-        ? widget.task!.copyWith(
+    final task = existingTask != null
+        ? existingTask.copyWith(
             title: title,
             description: description.isEmpty ? null : description,
             categoryId: _categoryId,
@@ -79,7 +80,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
           );
 
     try {
-      if (widget.task != null) {
+      if (existingTask != null) {
         await ref.read(tasksProvider.notifier).updateTask(task);
       } else {
         await ref.read(tasksProvider.notifier).addTask(task);
@@ -245,6 +246,8 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                   style: TextStyle(color: Colors.red),
                 ),
                 onPressed: () async {
+                  final taskToDelete = widget.task;
+                  if (taskToDelete == null) return;
                   final navigator = Navigator.of(context);
                   final confirmed = await showDialog<bool>(
                     context: context,
@@ -269,7 +272,7 @@ class _TaskFormPageState extends ConsumerState<TaskFormPage> {
                   if (confirmed == true && mounted) {
                     await ref
                         .read(tasksProvider.notifier)
-                        .deleteTask(widget.task!.id);
+                        .deleteTask(taskToDelete.id);
                     if (mounted) navigator.pop();
                   }
                 },

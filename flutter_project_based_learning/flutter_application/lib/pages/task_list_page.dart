@@ -212,20 +212,19 @@ class _TaskListPageState extends ConsumerState<TaskListPage>
       icon: Icon(icon, color: color),
       onSelected: (newStatus) =>
           ref.read(tasksProvider.notifier).updateStatus(task.id, newStatus),
-      itemBuilder: (_) => statuses
-          .map(
-            (s) => PopupMenuItem<TaskStatus>(
-              value: s.$1,
-              child: Row(
-                children: [
-                  Icon(s.$3, color: s.$4, size: 18),
-                  const SizedBox(width: 8),
-                  Text(s.$2),
-                ],
-              ),
+      itemBuilder: (_) => [
+        for (final (status, label, icon, color) in statuses)
+          PopupMenuItem<TaskStatus>(
+            value: status,
+            child: Row(
+              children: [
+                Icon(icon, color: color, size: 18),
+                const SizedBox(width: 8),
+                Text(label),
+              ],
             ),
-          )
-          .toList(),
+          ),
+      ],
     );
   }
 
